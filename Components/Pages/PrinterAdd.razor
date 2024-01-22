@@ -1,0 +1,44 @@
+﻿@inject ControlOfPrinters.Data.DataContext Context
+@inject NavigationManager Navigation
+
+@page "/Printer/Add"
+
+<h3>Adicionar Impressora</h3>
+
+
+<EditForm Model="@Model" OnValidSubmit="AddPrinterAsync">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="Ip" class="form-label">IP:</label>
+        <InputText id="Ip" class="form-control" @bind-Value="Model.Ip" />
+        <ValidationMessage For="@(() => Model.Ip)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Sector" class="form-label">Setor:</label>
+        <InputText id="Sector" class="form-control" @bind-Value="Model.Sector" />
+        <ValidationMessage For="@(() => Model.Sector)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Serial" class="form-label">Serial:</label>
+        <InputText id="Serial" class="form-control" @bind-Value="Model.Serial" />
+        <ValidationMessage For="@(() => Model.Serial)" />
+    </div>
+
+    <div>
+        <button type="submit" class="btn btn-success">Adicionar Impressora</button>
+    </div>
+</EditForm>
+
+@code {
+    private Entities.Printer Model { get; set; } = new();
+
+    private async Task AddPrinterAsync()
+    {
+        await Context.printers.AddAsync(Model);
+        await Context.SaveChangesAsync();
+        Navigation.NavigateTo("/",true);
+    }
+}

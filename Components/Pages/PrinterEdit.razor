@@ -1,0 +1,60 @@
+﻿@inject ControlOfPrinters.Data.DataContext Context
+@inject NavigationManager Navigation
+@using Microsoft.EntityFrameworkCore
+@page "/Printer/Edit/{id:int}"
+
+<h3>PrinterEdit</h3>
+
+<EditForm Model=@Model OnValidSubmit="EditPrinterAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mb-3">
+        <label for="Ip" class="form-label">IP:</label>
+        <InputText id="Ip" class="form-control" @bind-Value="Model.Ip" />
+        <ValidationMessage For="@(() => Model.Ip)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Sector" class="form-label">Setor:</label>
+        <InputText id="Sector" class="form-control" @bind-Value="Model.Sector" />
+        <ValidationMessage For="@(() => Model.Sector)" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Serial" class="form-label">Serial:</label>
+        <InputText id="Serial" class="form-control" @bind-Value="Model.Serial" />
+        <ValidationMessage For="@(() => Model.Serial)" />
+    </div>
+    <br />
+    <button type="submit" class="btn btn-primary">Save</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private Entities.Printer Model { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model = await Context.printers.AsTracking().FirstOrDefaultAsync<ControlOfPrinters.Entities.Printer>(x => x.Id == Id);
+    }
+
+    public async Task EditPrinterAsync()
+    {
+        try
+        {
+            if (Model != null)
+            {
+                Context.Entry(Model).State = EntityState.Detached; // Detach the entity from the context
+                Context.printers.Update(Model);
+                await Context.SaveChangesAsync();
+                Navigation.NavigateTo("/",true);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions (e.g., log or display an error message)
+            Console.WriteLine($"Error deleting printer: {ex.Message}");
+        }
+    }
+}

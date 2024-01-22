@@ -1,0 +1,140 @@
+﻿@inject ControlOfPrinters.Data.DataContext Context
+@using HtmlAgilityPack
+@inject NavigationManager Navigation
+@using Microsoft.EntityFrameworkCore
+@page "/"
+@using System.Collections
+
+<h3>Impressoras</h3>
+
+@if (!printers.Any())
+{
+    <h5>Não tem Impressoras cadastradas, Favor cadastrar clicando no botão a baixo</h5>
+    <div>
+        <a href="/Printer/Add" class="btn btn-success">Cadastro</a>
+    </div>
+}
+else
+{
+    <button class="btn btn-success" @onclick="ScanPrinters">Scan</button>
+
+    <table class="table tab-content">
+        <thead>
+            <tr>
+                <th scope="col">Ip</th>
+                <th scope="col">Serial</th>
+                <th scope ="col">Sector</th>
+                <th scope="col">Level</th>
+                <th scope ="col">Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var printer in printers)
+            {
+                <tr>
+                    <td>@printer.Ip</td>
+                    <td>@printer.Serial</td>
+                    <td>@printer.Sector</td>
+                    <td>
+                        @if (printer.Level == "Replace Print Cartridge" || printer.Level == "Replace Print Cartridge Soon" || printer.Level == "the printer is not connected to the network")
+                        {
+                            <i style="color: red">@printer.Level</i>
+                        }
+                        else
+                        {
+                        <i style="color: green">@printer.Level</i>
+                        }
+                    </td>
+                    <td>
+                        <a class="btn btn-light" href="http://@printer.Ip/main.asp?Lang =en-us" target="_blank">Impressora</a>
+                        <a class="btn btn-warning" href="/Printer/Edit/@printer.Id">Editar</a>
+                        <a class="btn btn-danger" href="/Printer/Delete/@printer.Id">Deletar</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<Entities.Printer> printers { get; set; } = Enumerable.Empty<Entities.Printer>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        printers = await Context.printers.AsNoTracking().ToListAsync();
+        ScanPrintersFirst();
+    }
+
+    private async Task ScanPrinters()
+    {
+        foreach (var print in printers)
+        {
+            try
+            {
+                string url = $"http://{print.Ip}/main.asp?Lang=en-us";
+                HtmlWeb web = new HtmlWeb();
+                HtmlDocument doc = web.Load(url);
+                var level = doc.DocumentNode.SelectNodes("//*[@class='settingCategoryL11'][5]")?.FirstOrDefault()?.InnerText;
+
+
+                print.Level = level;
+
+                var existingPrinter = await Context.printers.AsNoTracking().FirstOrDefaultAsync(p => p.Id == print.Id);
+
+                if (existingPrinter != null)
+                {
+                    existingPrinter.Level = print.Level;
+
+                    Context.printers.Update(existingPrinter);
+                    await Context.SaveChangesAsync();
+                }
+            }catch(Exception e)
+            {
+                print.Level = "the printer is not connected to the network";
+
+                Context.Entry(print).State = EntityState.Detached;
+                Context.printers.Update(print);
+                await Context.SaveChangesAsync();
+                Navigation.NavigateTo(Navigation.Uri, true);
+            }
+        }
+        Navigation.NavigateTo(Navigation.Uri, true);
+    }
+
+    private async Task ScanPrintersFirst()
+    {
+        foreach (var print in printers)
+        {
+            try
+            {
+                string url = $"http://{print.Ip}/main.asp?Lang=en-us";
+                HtmlWeb web = new HtmlWeb();
+                HtmlDocument doc = web.Load(url);
+                var level = doc.DocumentNode.SelectNodes("//*[@class='settingCategoryL11'][5]")?.FirstOrDefault()?.InnerText;
+
+
+                print.Level = level;
+
+                var existingPrinter = await Context.printers.AsNoTracking().FirstOrDefaultAsync(p => p.Id == print.Id);
+
+                if (existingPrinter != null)
+                {
+                    existingPrinter.Level = print.Level;
+
+                    Context.printers.Update(existingPrinter);
+                    await Context.SaveChangesAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                print.Level = "the printer is not connected to the network";
+
+                Context.Entry(print).State = EntityState.Detached;
+                Context.printers.Update(print);
+                await Context.SaveChangesAsync();
+               
+            }
+        }
+        
+    }
+}
